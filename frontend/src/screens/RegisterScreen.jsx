@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import {Link} from 'react-router-dom';
 import { Form, Button, Row, Col } from "react-bootstrap";
 import FormContainer from '../components/FormContainer';
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import Loader from '../components/Loader';
+import { useRegisterMutation } from "../slices/userApiSlice";
+import {setCredentials} from '../slices/authSlice'
+import { useNavigate } from "react-router-dom";
 
 const RegisterScreen = () => {
 
@@ -9,11 +15,36 @@ const RegisterScreen = () => {
     const [email, SetEmail] = useState('');
     const [password, SetPassword] = useState('');
     const [ConfirmPassword, SetConfirmPassword] = useState('');
+
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+
+    const {userInfo} = useSelector((state) => state.auth);
+
+    const [register, {isLoading}] = useRegisterMutation();
+
+    useEffect(() =>{
+        if (userInfo){
+            navigate('/');
+        }
+    },[navigate,userInfo]);
+
     
     const submitHandler = async (e) => {
         e.preventDefault();
-        console.log('submit')
-    }
+        if(password !== ConfirmPassword){
+            toast.error('Passwords do not match');
+        }else {
+            try {
+                const res = await register({name,email,password}).unwrap();
+                dispatch(setCredentials({...res}));
+                navigate('/');
+            } catch (err) {
+                toast.error(err?.data?.message || err.error)
+
+            }
+        }
+     };
 
   return (
     <FormContainer>
@@ -60,6 +91,8 @@ const RegisterScreen = () => {
                 onChange={ (e) => SetConfirmPassword(e.target.value)}
                 ></Form.Control>
             </Form.Group>
+
+            {isLoading && <Loader/>}
 
             <Button type="submit" variant="primary" className="mt-3">
                 Sign Up
